@@ -2,7 +2,7 @@
 
 ## Inspiration
 
-This automated scalping bot is inspired by [Rob Carver's "Can I build a scalping bot?" blog post](https://qoppac.blogspot.com/2025/05/can-i-build-scalping-bot-blogspot-with.html)
+This automated scalping bot is inspired by [Rob Carver's "Can I build a scalping bot?" blog post](https://qoppac.blogspot.com/2025/05/can-i-build-scalping-bot-blogpost-with.html)
 
 ## Prerequisites
 
