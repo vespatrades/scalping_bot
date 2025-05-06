@@ -7,8 +7,6 @@ This automated scalping bot is inspired by [Rob Carver's "Can I build a scalping
 ## Prerequisites
 
 - **Sierra Chart** installed
-- **Visual Studio 2022 Community** with C++ Desktop Development workload
-- Sierra Chart **ACSIL Source** folder for include paths
 
 ## Installation
 
