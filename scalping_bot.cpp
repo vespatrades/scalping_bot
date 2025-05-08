@@ -29,7 +29,7 @@ SCSFExport scsf_Scalping_Bot(SCStudyInterfaceRef sc)
 
         NumContracts.Name = "Number of Contracts";           NumContracts.SetInt(1);
         VolSubgraph.Name = "Volatility Subgraph (Range R)"; VolSubgraph.SetStudySubgraphValues(0, 0);
-        BracketFrac.Name = "Bracket Width Fraction of R";   BracketFrac.SetFloat(0.5f);
+        BracketFrac.Name = "Half Bracket Width Fraction of R";   BracketFrac.SetFloat(0.5f);
         StopFrac.Name = "Stop Loss Fraction of R";       StopFrac.SetFloat(0.5f);
         TPFrac.Name = "Take Profit Fraction of R";     TPFrac.SetFloat(1.0f);
 
@@ -47,7 +47,8 @@ SCSFExport scsf_Scalping_Bot(SCStudyInterfaceRef sc)
         sc.AllowEntryWithWorkingOrders = 1;
         sc.CancelAllWorkingOrdersOnExit = 0;
         sc.SupportAttachedOrdersForTrading = 1;
-
+        //uncomment for live trading
+        //sc.SendOrdersToTradeService = 1;
         return;
     }
 
