@@ -9,17 +9,18 @@ This automated scalping bot is an ACSIL (Advanced Custom Study Interface and Lan
 This automated scalping bot employs a mean-reversion approach, aiming to capture small profits from short-term price oscillations using dynamically calculated parameters.
 
 1.  **Dynamic Range (`R`) Calculation**:
-    *   The core volatility measure, `R`, is not a simple high-low range of a recent period. Instead, it's derived dynamically from an "Average Rotation" value.
-    *   This `Average Rotation` is typically sourced from another study's subgraph output on the chart (configured via the "Volatility Subgraph (Range R)" input). This external study usually calculates this value based on price rotations over a defined lookback period (e.g., a 90-day period for average bar rotations).
+    *   The core volatility measure, `R`, is derived dynamically from a user-selected study's subgraph output on the chart (configured via the "Volatility Subgraph (Range R)" input). This external study typically calculates a value like "Average Rotation" based on price rotations over a defined lookback period (e.g., 90 days).
     *   This dynamic `R` value forms the basis for determining trade entry and exit levels.
 
-2.  **Trading Window**:
-    *   The bot operates exclusively within a user-defined time window, specified by "Start Time" and "Stop Time" inputs.
-    *   Outside these hours, or if trading is disabled via the "Enable Trading" input, no new trades are initiated.
-    *   Crucially, at the designated "Stop Time," the bot will automatically attempt to flatten any open positions and cancel all working orders, ensuring it concludes the trading session flat.
+2.  **Trading Window (Optional)**:
+    *   The bot can operate within a user-defined time window, specified by "Start Time" and "Stop Time" inputs, if the "Use Trading Window" input is set to "Yes" (default).
+    *   If the trading window is enabled:
+        *   Outside these hours, or if trading is globally disabled via the "Enable Trading" input, no new trades are initiated.
+        *   At the designated "Stop Time," the bot will automatically attempt to flatten any open positions and cancel all working orders, ensuring it concludes the trading session flat.
+    *   If "Use Trading Window" is set to "No", the bot will operate as long as "Enable Trading" is "Yes", without regard to specific start/stop times and without an automated end-of-day flatten based on time.
 
 3.  **Entry Logic - OCO (Order-Cancels-Order) Brackets**:
-    *   When the bot is flat (no open position) and operating within the active trading window, it seeks to enter the market using OCO bracket orders.
+    *   When the bot is flat (no open position) and allowed to trade (either within the active trading window if enabled, or globally enabled if window is disabled), it seeks to enter the market using OCO bracket orders.
     *   It calculates two initial limit order prices based on the current closing price and the dynamic range `R`:
         *   Buy Limit Price: `Current Close Price - (R * Bracket Width Fraction)`
         *   Sell Limit Price: `Current Close Price + (R * Bracket Width Fraction)`
@@ -30,27 +31,32 @@ This automated scalping bot employs a mean-reversion approach, aiming to capture
         *   Take-Profit Offset from Entry: `R * Take Profit Fraction`
 
 4.  **Trade Management & Exit Logic**:
-    *   Once one of the initial OCO limit orders is filled, the bot is considered "In Trade" (either long or short).
+    *   Once one of the initial OCO limit orders is filled, the bot is considered "In Trade" (either long or short). The ID of this filled parent order is stored.
     *   The other initial limit order of the OCO group is automatically cancelled by Sierra Chart.
     *   The attached stop-loss and take-profit orders corresponding to the filled entry order become active.
-    *   The bot then monitors these active stop-loss and take-profit orders.
+    *   The bot then monitors these active child orders (stop-loss and take-profit) of the filled parent order.
     *   The trade is exited when either the stop-loss or the take-profit level is hit and filled.
-    *   Upon exit, the bot returns to a flat state, ready to look for new OCO bracket opportunities if within the trading window. This simplifies the state machine as there is no "unprotected" state; entries are immediately bracketed.
+    *   **Safety Exit**: If an active stop-loss or take-profit order is detected as CANCELED or in an ERROR state by the system/broker (not due to a fill), the bot will attempt to flatten the current position immediately to avoid an unprotected trade.
+    *   Upon exit (either by SL/TP fill or safety flatten), the bot returns to a flat state, ready to look for new OCO bracket opportunities if conditions allow.
 
 5.  **Parameters and Precision**:
     *   **Number of Contracts**: Sets the quantity for each trade.
-    *   **Volatility Subgraph (Range R)**: Specifies the Sierra Chart study and its specific subgraph to use for sourcing the dynamic `R` value (Average Rotation).
-    *   **Bracket Width Fraction of R**: Determines how far from the current price the initial buy/sell limit orders of the OCO bracket are placed.
-    *   **Stop Loss Fraction of R**: After an entry is filled, this determines the stop-loss distance from the entry price, as a multiple of `R`.
-    *   **Take Profit Fraction of R**: After an entry is filled, this determines the take-profit distance from the entry price, as a multiple of `R`.
-    *   **Log Detail Level**: Controls the verbosity of log messages output to the Sierra Chart Study Log for debugging and monitoring.
-    *   All price calculations for orders (entry prices, stop-loss offsets, take-profit offsets) are rounded to the nearest tick size of the traded instrument to ensure order validity.
+    *   **Volatility Subgraph (Range R)**: Specifies the Sierra Chart study and its subgraph to use for sourcing the dynamic `R` value.
+    *   **Bracket Width Fraction of R**: Determines how far from the current price the initial OCO limit orders are placed.
+    *   **Stop Loss Fraction of R**: Determines the stop-loss distance from the entry price, as a multiple of `R`.
+    *   **Take Profit Fraction of R**: Determines the take-profit distance from the entry price, as a multiple of `R`.
+    *   **Use Trading Window**: A Yes/No input to enable or disable the time-based trading window and end-of-day flattening. Defaults to "Yes".
+    *   **Start Time (HHMMSS)**: Trading start time, if the window is enabled.
+    *   **Stop Time (HHMMSS) & Flatten**: Trading stop time and flatten time, if the window is enabled.
+    *   **Enable Trading**: Master switch to enable or disable all trading actions by the bot.
+    *   **Log Detail Level**: A dropdown list (NONE, ERROR, WARN, INFO, DEBUG, VERBOSE) to control the verbosity of log messages for debugging and monitoring. Defaults to "INFO".
+    *   All price calculations for orders (entry prices, stop-loss offsets, take-profit offsets) are rounded to the nearest tick size of the traded instrument to ensure order validity. Offsets are also ensured to be at least one tick.
 
 6.  **State Management & Resilience**:
-    *   The bot uses Sierra Chart's persistent variables to maintain its operational state (e.g., Flat, BracketArmed, InPosition) and track critical order identifiers across study function calls.
+    *   The bot uses Sierra Chart's persistent variables to maintain its operational state (e.g., Flat, BracketArmed, InPosition, ActiveFilledParentOrderID) across study function calls.
     *   A bootstrap mechanism is included, which attempts to re-synchronize the study's internal state with actual open orders and positions if the study is reloaded or the chart undergoes a full recalculation.
 
-This strategy leverages Sierra Chart's robust OCO functionality to manage entries and initial risk, while adapting trade parameters dynamically based on the `R` value derived from an external "Average Rotation" indicator.
+This strategy leverages Sierra Chart's robust OCO functionality to manage entries and initial risk, while adapting trade parameters dynamically based on the `R` value derived from an external indicator.
 
 ## Prerequisites
 
@@ -71,23 +77,20 @@ For more realistic simulation results in Sierra Chart, especially when backtesti
 
 1.  **Enable Estimated Position in Queue Tracking**:
     *   Navigate to **Global Settings >> Chart Trade Settings >> General >> Position in Queue**. Enable this option.
-    *   When this is enabled (and "Estimated Position (Q)" is also enabled on the order line display), Sierra Chart will estimate your limit order's position in the order book queue at its price level. This provides a more realistic simulation of whether your limit order would get filled based on market depth and subsequent trades at that price.
-    *   The estimated position in queue (EP:) is calculated based on the bid/ask quantity at the order's price when entered, plus the order's own quantity. It decreases as trades occur at that price level.
-    *   This feature requires market depth data to be available for the instrument.
+    *   This provides a more realistic simulation of whether your limit order would get filled based on market depth.
+    *   Requires market depth data to be available for the instrument.
 
 2.  **Simulating Stop-Loss Slippage**:
-    *   While ACSIL uses attached stop orders, which are typically Stop Market orders, their fill price in live trading can differ from the trigger price due to slippage.
-    *   Sierra Chart's trade simulation can provide more realistic stop-loss fills if it has access to historical bid/ask prices and market depth.
-    *   Ensure your "Trade Simulation Mode" settings (found in **Trade >> Trade Simulation Mode On/Off >> Trade Simulation Mode Settings**) are configured for realistic fill simulation. Options like "Simulate Stop/Stop-Limit Order Fills Using Opposite Side Best Price + Slippage Amount" or using historical bid/ask data for fills will yield more conservative and realistic results.
+    *   Attached stop orders are typically Stop Market orders, and their fill price can differ from the trigger price due to slippage.
+    *   Configure Sierra Chart's "Trade Simulation Mode Settings" (**Trade >> Trade Simulation Mode On/Off >> Trade Simulation Mode Settings**) for realistic fill simulation (e.g., "Simulate Stop/Stop-Limit Order Fills Using Opposite Side Best Price + Slippage Amount").
 
 3.  **Use High-Quality Data**:
-    *   For scalping strategies, tick-by-tick historical data with market depth is ideal for the most accurate backtesting.
-    *   Ensure your Sierra Chart Data/Trade Service provides this level of detail for the instruments you are testing.
+    *   For scalping, tick-by-tick historical data with market depth is ideal.
 
 4.  **Consult Sierra Chart Documentation**:
-    *   For comprehensive details on configuring and utilizing Sierra Chart's trade simulation capabilities, refer to the official documentation: [Sierra Chart Trade Simulation Documentation](https://www.sierrachart.com/index.php?page=doc/TradeSimulation.php#UsingTradeSimulation)
+    *   Refer to the official documentation for comprehensive details on configuring Sierra Chart's trade simulation: [Sierra Chart Trade Simulation Documentation](https://www.sierrachart.com/index.php?page=doc/TradeSimulation.php#UsingTradeSimulation)
 
-Thoroughly testing with these more realistic simulation settings can help you better understand the potential performance and risks of the scalping bot before considering live trading.
+Thoroughly testing with these settings can help you better understand the potential performance and risks of the scalping bot.
 
 ## Risk Disclaimer
 
