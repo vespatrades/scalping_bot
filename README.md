@@ -69,36 +69,19 @@ This strategy leverages Sierra Chart's robust OCO functionality to manage entrie
 2.  Place the `.cpp` file in your `[SierraChartInstallationPath]/ACS_Source` directory.
 3.  Open Sierra Chart.
 4.  Select **Analysis >> Build Custom Studies DLL** from the main menu.
-5.  Follow the on-screen prompts. If successful, the DLL will be built, and the "Scalping Bot" study will be available to add to your charts.
+5.  Follow the on-screen prompts. If successful, the DLL will be built, and the "Scalping Bot" study will be available in `Custom Studies` to add to your charts.
 
-## Simulation and Testing Recommendations
+## Live Simulation Recommendation
 
-For more realistic simulation results in Sierra Chart, especially when backtesting or paper trading this scalping bot, consider the following settings:
-
-1.  **Enable Estimated Position in Queue Tracking**:
-    *   Navigate to **Global Settings >> Chart Trade Settings >> General >> Position in Queue**. Enable this option.
-    *   This provides a more realistic simulation of whether your limit order would get filled based on market depth.
-    *   Requires market depth data to be available for the instrument.
-
-2.  **Simulating Stop-Loss Slippage**:
-    *   Attached stop orders are typically Stop Market orders, and their fill price can differ from the trigger price due to slippage.
-    *   Configure Sierra Chart's "Trade Simulation Mode Settings" (**Trade >> Trade Simulation Mode On/Off >> Trade Simulation Mode Settings**) for realistic fill simulation (e.g., "Simulate Stop/Stop-Limit Order Fills Using Opposite Side Best Price + Slippage Amount").
-
-3.  **Use High-Quality Data**:
-    *   For scalping, tick-by-tick historical data with market depth is ideal.
-
-4.  **Consult Sierra Chart Documentation**:
-    *   Refer to the official documentation for comprehensive details on configuring Sierra Chart's trade simulation: [Sierra Chart Trade Simulation Documentation](https://www.sierrachart.com/index.php?page=doc/TradeSimulation.php#UsingTradeSimulation)
-
-Thoroughly testing with these settings can help you better understand the potential performance and risks of the scalping bot.
+- **[Enable Estimated Position in Queue Tracking](https://www.sierrachart.com/index.php?page=doc/GlobalTradeSettings.html#ChartTradeSettings_EnableEstimatedPositionInQueueTracking)** (Global Settings >> Chart Trade Settings >> General >> Position in Queue)
+- The feature is intended to provide a more realistic live trading simulation, especially for strategies sensitive to order queue dynamics.
+- This requires market depth data for the instrument being traded.
 
 ## Risk Disclaimer
 
 TRADING INVOLVES SIGNIFICANT RISK OF LOSS AND IS NOT SUITABLE FOR ALL INVESTORS. This scalping bot ACSIL study is provided for educational and informational purposes only. Its use is entirely at your own risk.
 
 -   **Past performance is not indicative of future results.**
--   Users should thoroughly test this software in a simulated trading environment with historical data (backtesting) and then with live data in simulation mode before considering deployment with real capital.
 -   The authors and contributors of this software accept no liability whatsoever for any financial losses, damages, or other adverse consequences resulting from the use of this software or the information it provides.
--   Always employ proper risk management techniques, including setting appropriate position sizes and stop-losses, and never trade with funds you cannot afford to lose.
 -   Market conditions, data feed quality, execution latency, and broker-specific behaviors can all impact the performance of automated trading systems.
 -   It is your responsibility to understand the code, its parameters, and its potential behavior in various market scenarios.
