@@ -672,7 +672,6 @@ SCSFExport scsf_Scalping_Bot(SCStudyInterfaceRef sc)
 
                 if (childOrderDetails.OrderStatusCode == SCT_OSC_FILLED)
                 {
-                    exitDetected = true;
                     logMsg.Format("Exit detected: Attached Order (ID: %d, ParentID: %d, Type: %s) FILLED. Qty: %.0f, Price: %.5f",
                         childOrderDetails.InternalOrderID,
                         ActiveFilledParentOrderID_Persist,
@@ -680,6 +679,10 @@ SCSFExport scsf_Scalping_Bot(SCStudyInterfaceRef sc)
                         childOrderDetails.FilledQuantity,
                         childOrderDetails.AvgFillPrice);
                     LogSCSMessage(sc, currentLogLevel, LOG_LEVEL_INFO, logMsg, true);
+
+                    // IMPORTANT: Clear the active parent ID immediately upon confirmed fill of a child
+                    ActiveFilledParentOrderID_Persist = 0;
+                    exitDetected = true;
                     break;
                 }
                 else if (childOrderDetails.OrderStatusCode == SCT_OSC_CANCELED ||
@@ -705,9 +708,11 @@ SCSFExport scsf_Scalping_Bot(SCStudyInterfaceRef sc)
 
         if (exitDetected)
         {
-            ParentBuyLimitOrderID_Persist = 0;
-            ParentSellLimitOrderID_Persist = 0;
-            ActiveFilledParentOrderID_Persist = 0;
+            // ActiveFilledParentOrderID_Persist should already be 0 if exit was due to a fill.
+            // If exit was due to critical safety flatten, it will also be cleared here.
+            ParentBuyLimitOrderID_Persist = 0;       // Remnants of OCO entry
+            ParentSellLimitOrderID_Persist = 0;      // Remnants of OCO entry
+            ActiveFilledParentOrderID_Persist = 0;   // Ensure it's cleared if not already
             CurrentTradeSide_Persist = SIDE_FLAT;
             IsBracketArmed_Persist = BRACKET_NOT_ARMED;
             LogSCSMessage(sc, currentLogLevel, LOG_LEVEL_INFO, "Trade exited/flattened. All states reset. Ready for new OCO bracket.");
